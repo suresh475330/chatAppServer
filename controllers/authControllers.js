@@ -146,38 +146,38 @@ const forgotPassword = asyncHandler(async (req, res) => {
 
     const { email } = req.body;
     const user = await User.findOne({ email });
-  
+
     if (!user) {
-      res.status(404);
-      throw new Error("User does not exist");
+        res.status(404);
+        throw new Error("User does not exist");
     }
-  
+
     // Delete token if it exists in DB
     let token = await Token.findOne({ userId: user._id });
     if (token) {
-      await token.deleteOne();
+        await token.deleteOne();
     }
-  
+
     // Create Reste Token
     let resetToken = crypto.randomBytes(32).toString("hex") + user._id;
-  
+
     // Hash token before saving to DB
     const hashedToken = crypto
-      .createHash("sha256")
-      .update(resetToken)
-      .digest("hex");
-  
+        .createHash("sha256")
+        .update(resetToken)
+        .digest("hex");
+
     // Save Token to DB
     await new Token({
-      userId: user._id,
-      token: hashedToken,
-      createdAt: Date.now(),
-      expiresAt: Date.now() + 30 * (60 * 1000), // Thirty minutes
+        userId: user._id,
+        token: hashedToken,
+        createdAt: Date.now(),
+        expiresAt: Date.now() + 30 * (60 * 1000), // Thirty minutes
     }).save();
-  
+
     // Construct Reset Url
     const resetUrl = `${process.env.FRONTEND_URL}/resetpassword/${resetToken}`;
-  
+
     // Reset Email
     const message = `
         <h2>Hello ${user.name}</h2>
@@ -192,13 +192,13 @@ const forgotPassword = asyncHandler(async (req, res) => {
     const subject = "Password Reset Request";
     const send_to = user.email;
     const sent_from = process.env.EMAIL_USER;
-  
+
     try {
-      await sendEmail(sent_from,send_to,subject, message);
-      res.status(200).json({ success: true, message: "Reset Email Sent" });
+        await sendEmail(sent_from, send_to, subject, message);
+        res.status(200).json({ success: true, message: "Reset Email Sent" });
     } catch (error) {
-      res.status(500);
-      throw new Error("Email not sent, please try again");
+        res.status(500);
+        throw new Error("Email not sent, please try again");
     }
 
 })
@@ -234,6 +234,43 @@ const resetPassword = asyncHandler(async (req, res) => {
 
 })
 
+const changePassword = asyncHandler(async (req, res) => {
 
-module.exports = { registerUser, loginUser, logout,forgotPassword,
-    resetPassword };
+
+    const user = await User.findById(req.user._id);
+    const { oldPassword, password } = req.body;
+
+    if (!user) {
+        res.status(400);
+        throw new Error("User not found, Please signup")
+    }
+
+    if (!oldPassword || !password) {
+        res.status(400);
+        throw new Error("Please add old and new password");
+    }
+
+    if (oldPassword === password) {
+        res.status(400);
+        throw new Error("Old and new password are same, Please change diffirent password")
+    }
+
+    const passwordIsCorrect = await bcrypt.compare(oldPassword, user.password);
+
+    if (user && passwordIsCorrect) {
+        user.password = password;
+        await user.save();
+        res.status(200).send("Password change successfully");
+    } else {
+        res.status(400);
+        throw new Error("Old password is incorrect");
+    }
+
+});
+
+
+
+module.exports = {
+    registerUser, loginUser, logout, forgotPassword,
+    resetPassword, changePassword
+};

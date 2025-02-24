@@ -9,19 +9,29 @@ const app = express();
 // Routes import
 const authRoutes = require("./routes/authRoutes")
 
+
+const allowedOrigins = process.env.NODE_ENV === "production"
+        ? process.env.FRONTEND_URL // Deployed frontend
+        : "http://localhost:3000"; // Local frontend
+
+
+
 // Middleware
 app.use(express.json());
-app.use(cors());
+app.use(cors({
+    origin: allowedOrigins,
+    credentials: true,
+}));
 app.use(cookieParser());
 
 
 // Routes middleware
-app.use("/api/v1/auth",authRoutes);
+app.use("/api/v1/auth", authRoutes);
 
 
 // Test Route
 app.get("/", (req, res) => {
-  res.send("API is running... hello");
+    res.send("API is running... hello");
 });
 
 app.use(errorHandler);
@@ -32,10 +42,10 @@ const PORT = process.env.PORT || 3000;
 const start = async () => {
     try {
         await connectDB(process.env.MONGO_URI);
-        app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+        app.listen(PORT, () => console.log(`Server running on port http://127.0.0.1:${PORT}`));
     } catch (error) {
         console.log(error);
-        
+
     }
 }
 
