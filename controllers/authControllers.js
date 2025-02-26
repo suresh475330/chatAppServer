@@ -61,8 +61,7 @@ const registerUser = asyncHandler(async (req, res) => {
             name,
             email,
             profilePic,
-            bio,
-            token
+            bio
         })
     } else {
         res.status(400);
@@ -116,8 +115,7 @@ const loginUser = asyncHandler(async (req, res) => {
             name,
             email,
             profilePic,
-            bio,
-            token,
+            bio
         });
     } else {
         res.status(400);
@@ -269,8 +267,25 @@ const changePassword = asyncHandler(async (req, res) => {
 });
 
 
+const getLoginStatus = asyncHandler(async (req, res) => {
+
+    const token = req.cookies.token;
+
+    if (!token) {
+        return res.json(false);
+    }
+
+    const verified = jwt.verify(token, process.env.JWT_SECRET);
+
+    if (verified) {
+        return res.json(true);
+    }
+
+    return res.json(false);
+});
+
 
 module.exports = {
     registerUser, loginUser, logout, forgotPassword,
-    resetPassword, changePassword
+    resetPassword, changePassword, getLoginStatus
 };
