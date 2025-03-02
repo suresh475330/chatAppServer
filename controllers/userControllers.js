@@ -47,4 +47,29 @@ const updateUser = asyncHandler(async (req, res) => {
 
 })
 
-module.exports = {getUser, updateUser};
+const searchUsers = asyncHandler( async (req, res) => {
+    const {query} = req.query;
+
+    if(!query) {
+        res.status(400)
+        throw new Error("Search query is required");
+    };
+
+    const users = await User.find({
+        $or : [
+            {name : {$regex : query, $options : "i"}},
+            {email : {$regex : query, $options : "i"}},
+        ],
+        _id : {$ne : req.user._id} // Exclude logged-in user
+    }).select("name email profilePic");
+
+    if(users.length === 0) {
+        res.status(404)
+        throw new Error("Users not found");
+    };
+
+    res.status(200).json(users);
+    
+})
+
+module.exports = {getUser, updateUser, searchUsers};
